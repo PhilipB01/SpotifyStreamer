@@ -1,0 +1,52 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:layout_margin="16dp"
+    tools:context="com.discflux.android.spotifystreamer.PlayFragment">
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ArtistPlaceholder"
+        android:id="@+id/artist_textview" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="AlbumPlaceholder"
+        android:id="@+id/album_textview" />
+    <ImageView
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:src="@mipmap/ic_launcher"
+        android:id="@+id/album_art_imageview" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SongPlaceholder"
+        android:id="@+id/track_textview" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@android:drawable/ic_media_previous"
+            android:id="@+id/button_previous"/>
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@android:drawable/ic_media_play"
+            android:id="@+id/button_play"/>
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@android:drawable/ic_media_next"
+            android:id="@+id/button_next"
+            android:focusableInTouchMode="false" />
+
+    </LinearLayout>
+</LinearLayout>
