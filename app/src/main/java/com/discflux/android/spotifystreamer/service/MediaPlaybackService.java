@@ -8,9 +8,11 @@ import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.wifi.WifiManager;
+import android.os.Binder;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import com.discflux.android.spotifystreamer.PlayActivity;
 import com.discflux.android.spotifystreamer.R;
@@ -26,22 +28,27 @@ public class MediaPlaybackService extends Service implements MediaPlayer.OnPrepa
     public static final String ACTION_PLAY = "com.discflux.action.PLAY";
     public static final String ACTION_PAUSE = "com.discflux.action.PAUSE";
     private static final int NOTIFICATION_ID = 0;
+
+    // Binder given to clients
+    private final IBinder mBinder = new LocalBinder();
+
     private MediaPlayer mMediaPlayer;
     private Notification notification;
-    private WifiManager.WifiLock wifiLock;
+    private WifiManager.WifiLock mWifiLock;
     private String songUrl, songName;
+    private int trackDuration = 0;
     private boolean initialStage = true;
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return mBinder;
     }
 
     @Override
     public void onCreate() {
         mMediaPlayer = new MediaPlayer();
-        wifiLock = ((WifiManager) getSystemService(Context.WIFI_SERVICE))
+        mWifiLock = ((WifiManager) getSystemService(Context.WIFI_SERVICE))
                 .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock");
 
         // set notification and startForeground
@@ -80,13 +87,15 @@ public class MediaPlaybackService extends Service implements MediaPlayer.OnPrepa
 
             // acquire cpu + wifi locks
             mMediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
-            wifiLock.acquire();
+            mWifiLock.acquire();
         }
         if (action.equals(ACTION_PAUSE)) {
             if (mMediaPlayer.isPlaying()) {
                 mMediaPlayer.pause();
             }
-            wifiLock.release();
+            if (mWifiLock.isHeld()) {
+                mWifiLock.release();
+            }
         }
         return 0;
     }
@@ -95,7 +104,6 @@ public class MediaPlaybackService extends Service implements MediaPlayer.OnPrepa
     private void setupMediaPlayer() {
         if (mMediaPlayer != null) {
             mMediaPlayer.reset();
-            mMediaPlayer = new MediaPlayer();
         }
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 
@@ -106,16 +114,22 @@ public class MediaPlaybackService extends Service implements MediaPlayer.OnPrepa
 
                 @Override
                 public void onCompletion(MediaPlayer mp) {
-                    initialStage = true;
-                    mMediaPlayer.stop();
-                    mMediaPlayer.reset();
-                    if (wifiLock.isHeld()) {
-                        wifiLock.release();
+                    //initialStage = true;
+                    mMediaPlayer.pause();
+                    //mMediaPlayer.reset();
+                    if (mWifiLock.isHeld()) {
+                        mWifiLock.release();
                     }
-                    stopSelf();
                 }
             });
         } catch (IOException e) {
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            Log.d("IllegarArgument", e.getMessage());
+            e.printStackTrace();
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        } catch (IllegalStateException e) {
             e.printStackTrace();
         }
 
@@ -131,22 +145,50 @@ public class MediaPlaybackService extends Service implements MediaPlayer.OnPrepa
     /** Called when MediaPlayer is ready */
     public void onPrepared(MediaPlayer player) {
         initialStage = false;
+        trackDuration = mMediaPlayer.getDuration();
         mMediaPlayer.start();
     }
 
     @Override
     public void onDestroy() {
         if (mMediaPlayer != null) {
+            mMediaPlayer.stop();
             mMediaPlayer.reset();
             mMediaPlayer.release();
             mMediaPlayer = null;
         }
-        if (wifiLock.isHeld()) {
-            wifiLock.release();
+        if (mWifiLock.isHeld()) {
+            mWifiLock.release();
         }
+        trackDuration = 0;
+        initialStage = true;
         stopForeground(true);
-
     }
 
+    public int getCurrentPosition() {
+        if (mMediaPlayer != null) {
+            Log.d(LOG_TAG, "Current Time: " + mMediaPlayer.getCurrentPosition());
+            return mMediaPlayer.getCurrentPosition();
+        }
+        return 0;
+    }
 
+    public void seekTo(int mSec) {
+        Log.d(LOG_TAG, "Duration: " + getTrackDuration());
+        Log.d(LOG_TAG, "Seek Time: " + mSec);
+        if (mMediaPlayer != null && mSec <= getTrackDuration()) {
+
+            mMediaPlayer.seekTo(mSec);
+        }
+    }
+
+    public int getTrackDuration() {
+        return trackDuration;
+    }
+
+    public class LocalBinder extends Binder {
+        public MediaPlaybackService getService() {
+            return MediaPlaybackService.this;
+        }
+    }
 }

@@ -1,12 +1,13 @@
 package com.discflux.android.spotifystreamer;
 
 import android.app.Fragment;
-import android.app.ProgressDialog;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
-import android.media.MediaPlayer;
-import android.os.AsyncTask;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,7 +20,6 @@ import android.widget.TextView;
 import com.discflux.android.spotifystreamer.service.MediaPlaybackService;
 import com.squareup.picasso.Picasso;
 
-import java.io.IOException;
 import java.util.ArrayList;
 
 /**
@@ -32,6 +32,7 @@ public class PlayFragment extends Fragment{
     private ImageButton prevButton, playButton, nextButton;
     private SeekBar seekBar;
     private Handler mHandler;
+    private MediaPlaybackService mService;
 
     private String artistName;
     private String albumTitle;
@@ -39,9 +40,10 @@ public class PlayFragment extends Fragment{
     private String imgUrl;
     private String previewUrl;
 
-    private MediaPlayer mMediaPlayer;
+    private int progress = 0, trackDuration = 0;
     private boolean play = false;
     private boolean initialStage = true;
+    private boolean mBound;
 
 
     private static final String ACTION_PLAY = "com.discflux.action.PLAY";
@@ -95,6 +97,11 @@ public class PlayFragment extends Fragment{
     public void onPause() {
         super.onPause();
         mHandler.removeCallbacks(mUpdateTimeTask);
+        if (mBound) {
+            getActivity().unbindService(mConnection);
+            mBound = false;
+        }
+
     }
 
     private View.OnClickListener mediaListener = new View.OnClickListener() {
@@ -102,37 +109,31 @@ public class PlayFragment extends Fragment{
         public void onClick(View v) {
             if (!play) {
                 playButton.setBackgroundResource(R.drawable.ic_media_pause);
-                if (initialStage) {
-                    Intent playbackService = new Intent(getActivity(), MediaPlaybackService.class);
-                    playbackService.setAction(MediaPlaybackService.ACTION_PLAY);
-                    playbackService.putExtra("song url", previewUrl);
-                    playbackService.putExtra("song name", trackTitle);
-                    getActivity().startService(playbackService);
+                Intent playbackService = new Intent(getActivity(), MediaPlaybackService.class);
+                playbackService.setAction(MediaPlaybackService.ACTION_PLAY);
+                playbackService.putExtra("song url", previewUrl);
+                playbackService.putExtra("song name", trackTitle);
+                getActivity().bindService(playbackService, mConnection, Context.BIND_AUTO_CREATE);
+                getActivity().startService(playbackService);
                     //Log.d(LOG_TAG, previewUrl);
-                    //new Player().execute(previewUrl);
-                }/* else {
-                    if (!mMediaPlayer.isPlaying()) {
-                        mMediaPlayer.start();
-                    }
-                }*/
+                updateProgressBar();
                 play = true;
             } else {
                 playButton.setBackgroundResource(R.drawable.ic_media_play);
-                /*if (mMediaPlayer.isPlaying()) {
-                    mMediaPlayer.pause();
-                }*/
                 Intent playbackService = new Intent(getActivity(), MediaPlaybackService.class);
                 playbackService.setAction(MediaPlaybackService.ACTION_PAUSE);
                 playbackService.putExtra("song url", previewUrl);
                 playbackService.putExtra("song name", trackTitle);
                 getActivity().startService(playbackService);
+                //getActivity().bindService(playbackService, mConnection, Context.BIND_AUTO_CREATE);
+                mHandler.removeCallbacks(mUpdateTimeTask);
                 play = false;
             }
         }
     };
 
     /**
-     * Update timer on seekbar
+     * Update timer on seek bar
      **/
     public void updateProgressBar() {
         mHandler.postDelayed(mUpdateTimeTask, 100);
@@ -143,28 +144,46 @@ public class PlayFragment extends Fragment{
      **/
     private Runnable mUpdateTimeTask = new Runnable() {
         public void run() {
-            long currentDuration = mMediaPlayer.getCurrentPosition();
+            int currentDuration = mService.getCurrentPosition();
 
             // Displaying time completed playing
             trackCurrentDurationText.setText(milliToTimer(currentDuration));
 
-            // Updating progress bar
-            int progress = (int) (currentDuration / 1000);
-            //Log.d("Progress", ""+progress);
-            if(mMediaPlayer != null) {
-                seekBar.setProgress(progress);
+            trackDuration =  mService.getTrackDuration();
+            String durationText = trackTotalDurationText.getText().toString();
+            if (durationText.equals("-") || durationText.contains("0:00")) {
+                trackTotalDurationText.setText(milliToTimer(trackDuration));
             }
 
-            // Running this thread after 100 milliseconds
-            mHandler.postDelayed(this, 100);
+            // Updating progress bar
+            if (trackDuration != 0) {
+                progress = (int) (((currentDuration / (double) trackDuration) + 0.005) * 100);
+                Log.d("Progress", "" + progress);
+                seekBar.setProgress(progress);
+            }
+            if (progress < 100) {
+                // Running this thread after 100 milliseconds
+                updateProgressBar();
+            } else {
+                signalReset();
+            }
         }
     };
+
+    private void signalReset() {
+        mHandler.removeCallbacks(mUpdateTimeTask);
+        playButton.setBackgroundResource(R.drawable.ic_media_play);
+        trackCurrentDurationText.setText(milliToTimer(0));
+        seekBar.setProgress(0);
+        play = false;
+    }
 
     private SeekBar.OnSeekBarChangeListener seekBarListener = new SeekBar.OnSeekBarChangeListener() {
         @Override
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
             if (fromUser) {
-                mMediaPlayer.seekTo(progress * 1000);
+                int mSec = (int)((double)progress/100 * mService.getTrackDuration());
+                mService.seekTo(mSec);
             }
         }
         @Override
@@ -179,18 +198,36 @@ public class PlayFragment extends Fragment{
         }
     };
 
-    private String milliToTimer(long duration) {
-        int minutes = (int)(duration / 60000);
-        int seconds = (int)(duration % 60000) / 1000;
+    private String milliToTimer(int duration) {
+        int minutes = (duration / 60000);
+        int seconds = (duration % 60000) / 1000;
 
         return String.format("%2d:%02d", minutes, seconds);
     }
+
+    /** Defines callbacks for service binding, passed to bindService() */
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            MediaPlaybackService.LocalBinder binder = (MediaPlaybackService.LocalBinder) service;
+            mService = binder.getService();
+            mBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
 
     /**
      * preparing mediaplayer will take sometime to buffer the content so prepare it inside the background thread and starting it on UI thread.
      * @author piyush
      *
-     */
+     *//*
     class Player extends AsyncTask<String, Void, Boolean> {
         private ProgressDialog progress;
 
@@ -261,5 +298,5 @@ public class PlayFragment extends Fragment{
             this.progress.show();
 
         }
-    }
+    }*/
 }
