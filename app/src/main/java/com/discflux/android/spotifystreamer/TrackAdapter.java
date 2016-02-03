@@ -35,7 +35,7 @@ public class TrackAdapter extends ArrayAdapter<TrackInfo> {
     }
 
     public View getView(int position, View convertView, ViewGroup parent) {
-        ViewHolder holder = null;
+        ViewHolder holder;
         TrackInfo track = getItem(position);
 
         LayoutInflater mInflater = (LayoutInflater) context
@@ -53,9 +53,13 @@ public class TrackAdapter extends ArrayAdapter<TrackInfo> {
         holder.albumTextView.setText(track.getAlbumName());
         holder.trackTextView.setText(track.getTrackName());
         if (track.getThumbnailUrl()!="") {
-            Picasso.with(context).load(track.getThumbnailUrl()).into(holder.imageView);
+            Picasso.with(context)
+                    .load(track.getThumbnailUrl())
+                    .into(holder.imageView);
         } else {
-            Picasso.with(context).load(R.mipmap.ic_launcher).into(holder.imageView);
+            Picasso.with(context)
+                    .load(R.mipmap.ic_launcher)
+                    .into(holder.imageView);
         }
 
         return convertView;

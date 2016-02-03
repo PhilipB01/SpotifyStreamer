@@ -113,7 +113,7 @@ public class TracksFragment extends Fragment {
     public class FetchTopTracksTask extends AsyncTask<String, Void, List<TrackInfo>> {
         @Override
         protected List<TrackInfo> doInBackground(String... params) {
-            final String countryCode = "AT";
+            final String countryCode = "GB";
             SpotifyApi api = new SpotifyApi();
             SpotifyService spotify = api.getService();
 
@@ -121,7 +121,7 @@ public class TracksFragment extends Fragment {
             map.put("country", countryCode);
             Tracks data = spotify.getArtistTopTrack(params[0], map);
             List<Track> tracks = data.tracks;
-            List<TrackInfo> trackInfoList = new ArrayList<TrackInfo>(tracks.size());
+            List<TrackInfo> trackInfoList = new ArrayList<>(tracks.size());
             for(Track track:tracks) {
                 String trackName = track.name;
                 String albumName = track.album.name;

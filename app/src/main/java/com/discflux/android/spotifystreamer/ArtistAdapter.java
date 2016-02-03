@@ -50,9 +50,15 @@ public class ArtistAdapter extends ArrayAdapter<ArtistInfo> {
 
         holder.textView.setText(artist.getArtistName());
         if (!artist.getThumbnailUrl().equals("")) {
-            Picasso.with(context).load(artist.getThumbnailUrl()).into(holder.imageView);
+            // debug picasso loading
+            Picasso.with(context).setIndicatorsEnabled(true);
+            Picasso.with(context)
+                    .load(artist.getThumbnailUrl())
+                    .into(holder.imageView);
         } else {
-            Picasso.with(context).load(R.mipmap.ic_launcher).into(holder.imageView);
+            Picasso.with(context)
+                    .load(R.mipmap.ic_launcher)
+                    .into(holder.imageView);
         }
 
         return convertView;

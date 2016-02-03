@@ -9,22 +9,54 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="ArtistPlaceholder"
+        android:textSize="22sp"
         android:id="@+id/artist_textview" />
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="AlbumPlaceholder"
+        android:textSize="18sp"
         android:id="@+id/album_textview" />
     <ImageView
         android:layout_width="300dp"
         android:layout_height="300dp"
         android:src="@mipmap/ic_launcher"
+        android:layout_margin="20dp"
         android:id="@+id/album_art_imageview" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="SongPlaceholder"
+        android:textSize="18sp"
         android:id="@+id/track_textview" />
+
+    <SeekBar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/seekBar" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0:00"
+            android:id="@+id/media_current_time_textview"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="right"
+            android:text="-"
+            android:id="@+id/media_end_time_textview"/>
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -39,7 +71,6 @@
         <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@android:drawable/ic_media_play"
             android:id="@+id/button_play"/>
         <ImageButton
             android:layout_width="wrap_content"
@@ -49,4 +80,5 @@
             android:focusableInTouchMode="false" />
 
     </LinearLayout>
+
 </LinearLayout>

@@ -36,6 +36,8 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.discflux.android.spotifystreamer.TracksActivity" />
         </activity>
+        <service android:name=".service.MediaPlaybackService" />
+
     </application>
 
 </manifest>
