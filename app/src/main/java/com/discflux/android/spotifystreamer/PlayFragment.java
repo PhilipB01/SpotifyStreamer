@@ -3,7 +3,6 @@ package com.discflux.android.spotifystreamer;
 import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.Intent;
-import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -17,6 +16,7 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.discflux.android.spotifystreamer.service.MediaPlaybackService;
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
@@ -41,9 +41,12 @@ public class PlayFragment extends Fragment{
 
     private MediaPlayer mMediaPlayer;
     private boolean play = false;
-    private boolean intialStage = true;
+    private boolean initialStage = true;
 
-    private final String LOG_TAG = PlayFragment.class.getSimpleName();
+
+    private static final String ACTION_PLAY = "com.discflux.action.PLAY";
+    private static final String ACTION_PAUSE = "com.discflux.action.PAUSE";
+    private static final String LOG_TAG = PlayFragment.class.getSimpleName();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -58,9 +61,6 @@ public class PlayFragment extends Fragment{
             previewUrl = trackDetails.get(4);
         }
         setup(rootView);
-
-        mMediaPlayer = new MediaPlayer();
-        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 
         playButton.setOnClickListener(mediaListener);
 
@@ -94,12 +94,7 @@ public class PlayFragment extends Fragment{
     @Override
     public void onPause() {
         super.onPause();
-        if (mMediaPlayer != null) {
-            mMediaPlayer.reset();
-            mMediaPlayer.release();
-            mMediaPlayer = null;
-            mHandler.removeCallbacks(mUpdateTimeTask);
-        }
+        mHandler.removeCallbacks(mUpdateTimeTask);
     }
 
     private View.OnClickListener mediaListener = new View.OnClickListener() {
@@ -107,20 +102,30 @@ public class PlayFragment extends Fragment{
         public void onClick(View v) {
             if (!play) {
                 playButton.setBackgroundResource(R.drawable.ic_media_pause);
-                if (intialStage) {
+                if (initialStage) {
+                    Intent playbackService = new Intent(getActivity(), MediaPlaybackService.class);
+                    playbackService.setAction(MediaPlaybackService.ACTION_PLAY);
+                    playbackService.putExtra("song url", previewUrl);
+                    playbackService.putExtra("song name", trackTitle);
+                    getActivity().startService(playbackService);
                     //Log.d(LOG_TAG, previewUrl);
-                    new Player().execute(previewUrl);
-                } else {
+                    //new Player().execute(previewUrl);
+                }/* else {
                     if (!mMediaPlayer.isPlaying()) {
                         mMediaPlayer.start();
                     }
-                }
+                }*/
                 play = true;
             } else {
                 playButton.setBackgroundResource(R.drawable.ic_media_play);
-                if (mMediaPlayer.isPlaying()) {
+                /*if (mMediaPlayer.isPlaying()) {
                     mMediaPlayer.pause();
-                }
+                }*/
+                Intent playbackService = new Intent(getActivity(), MediaPlaybackService.class);
+                playbackService.setAction(MediaPlaybackService.ACTION_PAUSE);
+                playbackService.putExtra("song url", previewUrl);
+                playbackService.putExtra("song name", trackTitle);
+                getActivity().startService(playbackService);
                 play = false;
             }
         }
@@ -128,14 +133,14 @@ public class PlayFragment extends Fragment{
 
     /**
      * Update timer on seekbar
-     * */
+     **/
     public void updateProgressBar() {
-        mHandler.postDelayed(mUpdateTimeTask, 1000);
+        mHandler.postDelayed(mUpdateTimeTask, 100);
     }
 
     /**
      * Background Runnable thread
-     * */
+     **/
     private Runnable mUpdateTimeTask = new Runnable() {
         public void run() {
             long currentDuration = mMediaPlayer.getCurrentPosition();
@@ -144,22 +149,21 @@ public class PlayFragment extends Fragment{
             trackCurrentDurationText.setText(milliToTimer(currentDuration));
 
             // Updating progress bar
-            int progress = mMediaPlayer.getCurrentPosition() / 1000;
+            int progress = (int) (currentDuration / 1000);
             //Log.d("Progress", ""+progress);
             if(mMediaPlayer != null) {
                 seekBar.setProgress(progress);
             }
 
             // Running this thread after 100 milliseconds
-            mHandler.postDelayed(this, 1000);
+            mHandler.postDelayed(this, 100);
         }
     };
-
 
     private SeekBar.OnSeekBarChangeListener seekBarListener = new SeekBar.OnSeekBarChangeListener() {
         @Override
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-            if (mMediaPlayer != null && fromUser) {
+            if (fromUser) {
                 mMediaPlayer.seekTo(progress * 1000);
             }
         }
@@ -201,13 +205,16 @@ public class PlayFragment extends Fragment{
 
                     @Override
                     public void onCompletion(MediaPlayer mp) {
-                        intialStage = true;
+                        initialStage = true;
                         play = false;
                         playButton.setBackgroundResource(R.drawable.ic_media_play);
                         mMediaPlayer.stop();
                         mMediaPlayer.reset();
                         // remove message Handler from updating progress bar
                         mHandler.removeCallbacks(mUpdateTimeTask);
+                        seekBar.setProgress(0);
+                        trackTotalDurationText.setText("-");
+                        trackCurrentDurationText.setText("0:00");
                     }
                 });
                 mMediaPlayer.prepare();
@@ -240,7 +247,7 @@ public class PlayFragment extends Fragment{
             trackTotalDurationText.setText(milliToTimer(mMediaPlayer.getDuration()));
             mMediaPlayer.start();
             updateProgressBar();
-            intialStage = false;
+            initialStage = false;
         }
 
         public Player() {
