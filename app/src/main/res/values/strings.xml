@@ -1,8 +1,28 @@
 <resources>
     <string name="app_name">Spotify Streamer</string>
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
-    <string name="search_text">Enter an artist name</string>
+
     <string name="title_activity_tracks">Top 10 Tracks</string>
     <string name="title_activity_play">Playing Track</string>
+
+    <string name="search_text">Enter an artist name</string>
+
+
+    <string name="action_settings">Settings</string>
+
+
+    <!-- Strings related to Notification preference -->
+
+    <!-- Title name for notification option in SharedPreferences [CHAR LIMIT=40] -->
+    <string name="pref_notification_label">Notifications</string>
+
+    <!-- Summary text for notification option in SharedPreferences [CHAR LIMIT=NONE] -->
+    <string name="pref_notification_summaryOn">On</string>
+    <string name="pref_notification_summaryOff">Off</string>
+
+    <!-- Key name for storing notification in SharedPreferences [CHAR LIMIT=20] -->
+    <string name="pref_notification_key" translatable="false">notifications</string>
+
+    <!-- Default value for notification checkbox in SharedPreferences [Bool] -->
+    <string name="pref_notification_default" translateable="false">true</string>
+
 </resources>

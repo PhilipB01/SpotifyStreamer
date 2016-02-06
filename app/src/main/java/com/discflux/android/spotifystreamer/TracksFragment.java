@@ -31,8 +31,10 @@ import kaaes.spotify.webapi.android.models.Tracks;
 public class TracksFragment extends Fragment {
 
     private static final String LOG_TAG = TracksFragment.class.getSimpleName();
+    public static final String ARTIST_NAME = "ARTIST_NAME_DATA";
+    public static final String SPOTIFY_ID = "SPOTIFY_ID_DATA";
     TrackAdapter mTracksAdapter;
-    String artistName;
+    String mArtistName;
 
     public TracksFragment() {
     }
@@ -43,14 +45,25 @@ public class TracksFragment extends Fragment {
 
         View rootView = inflater.inflate(R.layout.fragment_tracks, container, false);
 
+        //String spotifyId = "12Chz98pHFMPJEknJQMWvI";
         String spotifyId = "";
 
-        Intent intent = getActivity().getIntent();
-        if(intent!=null && intent.hasExtra(Intent.EXTRA_TITLE)) {
-            artistName = intent.getStringExtra(Intent.EXTRA_TITLE);
+        Bundle arguments = getArguments();
+        if (arguments != null) {
+            mArtistName = arguments.getString(ARTIST_NAME);
+            spotifyId = arguments.getString(SPOTIFY_ID);
         }
-        if(intent!=null && intent.hasExtra(Intent.EXTRA_TEXT)) {
-            spotifyId = intent.getStringExtra(Intent.EXTRA_TEXT);
+
+        Intent intent = getActivity().getIntent();
+        if (intent != null) {
+            Log.d(LOG_TAG, "Is a phone fragment");
+            if (intent.hasExtra(ARTIST_NAME)) {
+                mArtistName = intent.getStringExtra(ARTIST_NAME);
+            }
+            if (intent.hasExtra(SPOTIFY_ID)) {
+                spotifyId = intent.getStringExtra(SPOTIFY_ID);
+
+            }
         }
         updateTracks(spotifyId);
 
@@ -59,8 +72,8 @@ public class TracksFragment extends Fragment {
         if (actionBar==null) {
             Log.e(LOG_TAG, "Action bar is null!");
         }
-        else if(artistName!=null){
-            actionBar.setSubtitle(artistName);
+        else if(mArtistName != null){
+            actionBar.setSubtitle(mArtistName);
         }
 
         /*// placeholder tracks
@@ -87,7 +100,7 @@ public class TracksFragment extends Fragment {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 TrackInfo track = mTracksAdapter.getItem(position);
                 ArrayList<String> trackDetails = new ArrayList<>();
-                trackDetails.add(artistName);
+                trackDetails.add(mArtistName);
                 trackDetails.add(track.getTrackName());
                 trackDetails.add(track.getAlbumName());
                 trackDetails.add(track.getImageUrl());
@@ -102,7 +115,7 @@ public class TracksFragment extends Fragment {
     }
 
     private void updateTracks(String spotifyId) {
-        if(spotifyId!="") {
+        if (spotifyId != "") {
             FetchTopTracksTask fetchTracks = new FetchTopTracksTask();
             fetchTracks.execute(spotifyId);
         } else {

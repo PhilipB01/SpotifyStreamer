@@ -4,51 +4,96 @@
     android:orientation="vertical"
     android:gravity="center"
     android:layout_margin="16dp"
-    tools:context="com.discflux.android.spotifystreamer.PlayFragment">
+    android:background="@color/grayAlbumBackground"
+    tools:context="com.discflux.android.spotifystreamer.PlayFragment"
+    android:id="@+id/linear_layout_background">
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="ArtistPlaceholder"
         android:textSize="22sp"
+        android:textColor="@color/whiteText"
         android:id="@+id/artist_textview" />
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="AlbumPlaceholder"
         android:textSize="18sp"
+        android:textColor="@color/whiteText"
         android:id="@+id/album_textview" />
-    <ImageView
-        android:layout_width="157dp"
-        android:layout_height="157dp"
+    <!--ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:src="@mipmap/ic_launcher"
-        android:id="@+id/album_art_imageview" />
+        android:layout_margin="20dp"
+        android:id="@+id/album_art_imageview" /-->
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="SongPlaceholder"
         android:textSize="18sp"
+        android:textColor="@color/whiteText"
         android:id="@+id/track_textview" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:layout_marginTop="100dp"
         android:gravity="center">
+
         <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@android:drawable/ic_media_previous"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
             android:id="@+id/button_previous"/>
         <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
             android:id="@+id/button_play"/>
         <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@android:drawable/ic_media_next"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
             android:id="@+id/button_next"
             android:focusableInTouchMode="false" />
 
     </LinearLayout>
+
+
+    <SeekBar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="10dp"
+        android:id="@+id/seekBar" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0:00"
+            android:textColor="@color/whiteText"
+            android:id="@+id/media_current_time_textview"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="right"
+            android:text="-"
+            android:textColor="@color/whiteText"
+            android:id="@+id/media_end_time_textview"/>
+    </LinearLayout>
+
 </LinearLayout>

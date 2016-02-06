@@ -31,11 +31,21 @@
         </activity>
         <activity
             android:name=".PlayActivity"
+            android:launchMode="singleTop"
             android:label="@string/title_activity_play"
             android:parentActivityName=".TracksActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.discflux.android.spotifystreamer.TracksActivity" />
+        </activity>
+        <activity
+            android:name=".SettingsActivity"
+            android:launchMode="singleTop"
+            android:label="@string/action_settings"
+            android:parentActivityName=".MainActivity" >
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.discflux.android.spotifystreamer.MainActivity" />
         </activity>
         <service android:name=".service.MediaPlaybackService" />
 

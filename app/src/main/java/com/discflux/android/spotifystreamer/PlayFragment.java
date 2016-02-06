@@ -5,6 +5,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -14,11 +18,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.discflux.android.spotifystreamer.service.MediaPlaybackService;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
 import java.util.ArrayList;
 
@@ -33,6 +39,7 @@ public class PlayFragment extends Fragment{
     private SeekBar seekBar;
     private Handler mHandler;
     private MediaPlaybackService mService;
+    private Intent mPlaybackService;
 
     private String artistName;
     private String albumTitle;
@@ -42,16 +49,13 @@ public class PlayFragment extends Fragment{
 
     private int progress = 0, trackDuration = 0;
     private boolean play = false;
-    private boolean initialStage = true;
     private boolean mBound;
 
-
-    private static final String ACTION_PLAY = "com.discflux.action.PLAY";
-    private static final String ACTION_PAUSE = "com.discflux.action.PAUSE";
     private static final String LOG_TAG = PlayFragment.class.getSimpleName();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "View Created");
         View rootView = inflater.inflate(R.layout.fragment_play, container, false);
         Intent intent = getActivity().getIntent();
         if(intent!=null) {
@@ -67,11 +71,17 @@ public class PlayFragment extends Fragment{
         playButton.setOnClickListener(mediaListener);
 
         mHandler = new Handler();
+
         seekBar.setOnSeekBarChangeListener(seekBarListener);
+
         return rootView;
     }
 
+    /**
+     ** Prepare layout and views
+     **/
     private void setup(View view) {
+        Log.d(LOG_TAG, "View setup");
         artistText = (TextView) view.findViewById(R.id.artist_textview);
         albumText = (TextView) view.findViewById(R.id.album_textview);
         trackText = (TextView) view.findViewById(R.id.track_textview);
@@ -82,65 +92,153 @@ public class PlayFragment extends Fragment{
         trackTotalDurationText = (TextView) view.findViewById(R.id.media_end_time_textview);
 
         playButton = (ImageButton) view.findViewById(R.id.button_play);
-        playButton.setBackgroundResource(R.drawable.ic_media_play);
-
         prevButton = (ImageButton) view.findViewById(R.id.button_previous);
         nextButton = (ImageButton) view.findViewById(R.id.button_next);
+
+        playButton.setBackgroundResource(android.R.drawable.ic_media_play);
+        prevButton.setBackgroundResource(android.R.drawable.ic_media_previous);
+        nextButton.setBackgroundResource(android.R.drawable.ic_media_next);
+
+        prevButton.setScaleX(1.5f);
+        prevButton.setScaleY(1.5f);
+
+        playButton.setScaleX(1.5f);
+        playButton.setScaleY(1.5f);
+
+        nextButton.setScaleX(1.5f);
+        nextButton.setScaleY(1.5f);
+
 
         artistText.setText(artistName);
         albumText.setText(albumTitle);
         trackText.setText(trackTitle);
-        Picasso.with(getActivity()).load(imgUrl).into(imageView);
+        if (imageView != null) {
+            // vertical layout album art
+            Picasso.with(getActivity()).load(imgUrl).into(imageView);
+        } else {
+            // horizontal layout album art
+            final LinearLayout horizontalBackground = (LinearLayout) view.findViewById(R.id.linear_layout_background);
+            Picasso.with(getActivity()).load(imgUrl).into(new Target() {
+                @Override
+                public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                        horizontalBackground.setBackground(new BitmapDrawable(bitmap));
+                    }
+                }
+
+                @Override
+                public void onBitmapFailed(Drawable errorDrawable) {
+                }
+
+                @Override
+                public void onPrepareLoad(Drawable placeHolderDrawable) {
+                }
+            });
+
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
+        Log.d(LOG_TAG, "Activity Paused");
         mHandler.removeCallbacks(mUpdateTimeTask);
         if (mBound) {
             getActivity().unbindService(mConnection);
             mBound = false;
         }
+    }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.d(LOG_TAG, "Activity Resumed");
+
+        Intent playbackService = new Intent(getActivity(), MediaPlaybackService.class);
+        getActivity().bindService(playbackService, mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    /**
+     * Save instance state before orientation changes
+     **/
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "onSaveInstanceStateCalled");
+        savedInstanceState.putInt("track duration", trackDuration);
+        savedInstanceState.putInt("current time", mService.getCurrentPosition());
+        savedInstanceState.putInt("current progress", progress);
+        savedInstanceState.putBoolean("isPlaying", play);
+
+        // Always call the superclass so it can save the view hierarchy state
+        super.onSaveInstanceState(savedInstanceState);
+    }
+
+    /**
+     * Restores saved instance state
+     **/
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "Restoring instance state");
+        Log.d(LOG_TAG, "hasInstanceState: " + savedInstanceState);
+        super.onActivityCreated(savedInstanceState);
+        if (savedInstanceState != null) {
+            // Restore value of members from saved state
+            play = savedInstanceState.getBoolean("isPlaying");
+            progress = savedInstanceState.getInt("current progress");
+            seekBar.setProgress(progress);
+            trackDuration = savedInstanceState.getInt("track duration");
+            trackTotalDurationText.setText(milliToTimer(trackDuration));
+            int currentTime = savedInstanceState.getInt("current time");
+            trackCurrentDurationText.setText(milliToTimer(currentTime));
+
+            if (play) {
+                playButton.setBackgroundResource(android.R.drawable.ic_media_pause);
+                updateProgressBar();
+            } else {
+                playButton.setBackgroundResource(android.R.drawable.ic_media_play);
+            }
+        }
     }
 
     private View.OnClickListener mediaListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             if (!play) {
-                playButton.setBackgroundResource(R.drawable.ic_media_pause);
-                Intent playbackService = new Intent(getActivity(), MediaPlaybackService.class);
-                playbackService.setAction(MediaPlaybackService.ACTION_PLAY);
-                playbackService.putExtra("song url", previewUrl);
-                playbackService.putExtra("song name", trackTitle);
-                getActivity().bindService(playbackService, mConnection, Context.BIND_AUTO_CREATE);
-                getActivity().startService(playbackService);
-                    //Log.d(LOG_TAG, previewUrl);
+                playButton.setBackgroundResource(android.R.drawable.ic_media_pause);
+                mPlaybackService = prepareMediaIntent(mPlaybackService, MediaPlaybackService.ACTION_PLAY);
+                //getActivity().bindService(mPlaybackService, mConnection, Context.BIND_AUTO_CREATE);
+                getActivity().startService(mPlaybackService);
                 updateProgressBar();
                 play = true;
             } else {
-                playButton.setBackgroundResource(R.drawable.ic_media_play);
-                Intent playbackService = new Intent(getActivity(), MediaPlaybackService.class);
-                playbackService.setAction(MediaPlaybackService.ACTION_PAUSE);
-                playbackService.putExtra("song url", previewUrl);
-                playbackService.putExtra("song name", trackTitle);
-                getActivity().startService(playbackService);
-                //getActivity().bindService(playbackService, mConnection, Context.BIND_AUTO_CREATE);
+                playButton.setBackgroundResource(android.R.drawable.ic_media_play);
+                mPlaybackService = prepareMediaIntent(mPlaybackService, MediaPlaybackService.ACTION_PAUSE);
+                //getActivity().bindService(mPlaybackService, mConnection, Context.BIND_AUTO_CREATE);
+                getActivity().startService(mPlaybackService);
                 mHandler.removeCallbacks(mUpdateTimeTask);
                 play = false;
             }
         }
     };
 
-    /**
-     * Update timer on seek bar
-     **/
+    private Intent prepareMediaIntent(Intent intent, String action) {
+        if (intent == null) {
+            intent = new Intent(getActivity(), MediaPlaybackService.class);
+        }
+        intent.setAction(action);
+        intent.putExtra("song url", previewUrl);
+        intent.putExtra("song name", trackTitle);
+        intent.putExtra("icon url", imgUrl);
+        return intent;
+    }
+
+    /** Update scrub bar every 100 mSec */
     public void updateProgressBar() {
         mHandler.postDelayed(mUpdateTimeTask, 100);
     }
 
     /**
-     * Background Runnable thread
+     * Background Runnable thread for handling scrub bar updates
      **/
     private Runnable mUpdateTimeTask = new Runnable() {
         public void run() {
@@ -158,21 +256,25 @@ public class PlayFragment extends Fragment{
             // Updating progress bar
             if (trackDuration != 0) {
                 progress = (int) (((currentDuration / (double) trackDuration) + 0.005) * 100);
-                Log.d("Progress", "" + progress);
+                //Log.i("Progress", "" + progress);
                 seekBar.setProgress(progress);
             }
             if (progress < 100) {
                 // Running this thread after 100 milliseconds
                 updateProgressBar();
             } else {
-                signalReset();
+                resetScrubBar();
             }
         }
     };
 
-    private void signalReset() {
+    /**
+     * Called on song completion to reset scrub bar to start of track
+     **/
+    private void resetScrubBar() {
+        Log.d(LOG_TAG, "Track playback complete");
         mHandler.removeCallbacks(mUpdateTimeTask);
-        playButton.setBackgroundResource(R.drawable.ic_media_play);
+        playButton.setBackgroundResource(android.R.drawable.ic_media_play);
         trackCurrentDurationText.setText(milliToTimer(0));
         seekBar.setProgress(0);
         play = false;
@@ -205,7 +307,9 @@ public class PlayFragment extends Fragment{
         return String.format("%2d:%02d", minutes, seconds);
     }
 
-    /** Defines callbacks for service binding, passed to bindService() */
+    /**
+     *  Defines callbacks for service binding, passed to bindService()
+     **/
     private ServiceConnection mConnection = new ServiceConnection() {
 
         @Override
@@ -215,6 +319,17 @@ public class PlayFragment extends Fragment{
             MediaPlaybackService.LocalBinder binder = (MediaPlaybackService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
+            Log.d(LOG_TAG, "Service connected");
+            Log.d(LOG_TAG, "player ready: " + mService.playerReady());
+            Log.d(LOG_TAG, "playing: " + play);
+
+            if (mService.playerReady() && mService.getSongUrl().equals(previewUrl)) {
+                Log.d(LOG_TAG, "Want to update progress bar: " + progress);
+                updateProgressBar();
+                if (mService.isPlaying()) {
+                    playButton.setBackgroundResource(android.R.drawable.ic_media_pause);
+                }
+            }
         }
 
         @Override
@@ -222,81 +337,4 @@ public class PlayFragment extends Fragment{
             mBound = false;
         }
     };
-
-    /**
-     * preparing mediaplayer will take sometime to buffer the content so prepare it inside the background thread and starting it on UI thread.
-     * @author piyush
-     *
-     *//*
-    class Player extends AsyncTask<String, Void, Boolean> {
-        private ProgressDialog progress;
-
-        @Override
-        protected Boolean doInBackground(String... params) {
-            Boolean prepared;
-            try {
-
-                mMediaPlayer.setDataSource(params[0]);
-
-                mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-
-                    @Override
-                    public void onCompletion(MediaPlayer mp) {
-                        initialStage = true;
-                        play = false;
-                        playButton.setBackgroundResource(R.drawable.ic_media_play);
-                        mMediaPlayer.stop();
-                        mMediaPlayer.reset();
-                        // remove message Handler from updating progress bar
-                        mHandler.removeCallbacks(mUpdateTimeTask);
-                        seekBar.setProgress(0);
-                        trackTotalDurationText.setText("-");
-                        trackCurrentDurationText.setText("0:00");
-                    }
-                });
-                mMediaPlayer.prepare();
-                prepared = true;
-            } catch (IllegalArgumentException e) {
-                Log.d("IllegarArgument", e.getMessage());
-                prepared = false;
-                e.printStackTrace();
-            } catch (SecurityException e) {
-                prepared = false;
-                e.printStackTrace();
-            } catch (IllegalStateException e) {
-                prepared = false;
-                e.printStackTrace();
-            } catch (IOException e) {
-                prepared = false;
-                e.printStackTrace();
-            }
-            return prepared;
-        }
-
-        @Override
-        protected void onPostExecute(Boolean result) {
-            super.onPostExecute(result);
-            if (progress.isShowing()) {
-                progress.cancel();
-            }
-            Log.d("Prepared", "//" + result);
-            seekBar.setMax(mMediaPlayer.getDuration() / 1000); // where mFileDuration is mMediaPlayer.getDuration();
-            trackTotalDurationText.setText(milliToTimer(mMediaPlayer.getDuration()));
-            mMediaPlayer.start();
-            updateProgressBar();
-            initialStage = false;
-        }
-
-        public Player() {
-            progress = new ProgressDialog(getActivity());
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            this.progress.setMessage("Buffering...");
-            this.progress.show();
-
-        }
-    }*/
 }

@@ -15,9 +15,10 @@
         android:id="@+id/artist_search_edit_text"/>
 
     <ListView
+        style="@style/ArtistListStyle"
         android:layout_width="match_parent"
         android:layout_height="fill_parent"
-        android:id="@+id/list_view_artists">
+        android:id="@+id/list_view_artists" >
     </ListView>
 
 </LinearLayout>

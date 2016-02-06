@@ -1,7 +1,6 @@
 package com.discflux.android.spotifystreamer;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -33,11 +32,14 @@ import kaaes.spotify.webapi.android.models.Image;
  */
 public class SearchFragment extends Fragment {
 
-    private final String LOG_TAG = SearchFragment.class.getSimpleName();
-    private final String SEACRH_VALUE = "Search Box String";
+    private static final String LOG_TAG = SearchFragment.class.getSimpleName();
+    private static final String SEACRH_VALUE = "search box string";
+    private static final String ITEM_POSITION = "selected item osition";
 
+    private int mPosition = ListView.INVALID_POSITION;
+    private ListView mListView;
     private ArtistAdapter mArtistAdapter;
-    private long delayTime = 300;
+    private long delayTime = 500;
     private FetchArtistsTask mLastFetchTask;
     private EditText mSearchBox;
     private String mSearchString;
@@ -55,7 +57,7 @@ public class SearchFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+                             final Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_search, container, false);
 
         mSearchBox = (EditText) rootView.findViewById(R.id.artist_search_edit_text);
@@ -97,10 +99,12 @@ public class SearchFragment extends Fragment {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
             }
+
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 mSearchBox.setCompoundDrawables(null, null, s.equals("") ? null : x, null);
             }
+
             @Override
             public void afterTextChanged(Editable s) {
                 synchronized (this) {
@@ -117,10 +121,11 @@ public class SearchFragment extends Fragment {
             }
         });
 
-        ListView listView = (ListView) rootView.findViewById(R.id.list_view_artists);
-        listView.setAdapter(mArtistAdapter);
+        mListView = (ListView) rootView.findViewById(R.id.list_view_artists);
+        mListView.setAdapter(mArtistAdapter);
 
-        listView.setOnItemClickListener(new OnItemClickListener() {
+
+        mListView.setOnItemClickListener(new OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 ArtistInfo artist = mArtistAdapter.getItem(position);
@@ -128,16 +133,14 @@ public class SearchFragment extends Fragment {
                 String spotifyId = artist.getSpotifyId();
                 // 0 is terminal value for no artists found message
                 if (spotifyId != "0") {
-                    Intent tracksIntent = new Intent(getActivity(), TracksActivity.class);
-                    tracksIntent.putExtra(Intent.EXTRA_TITLE, artistName);
-                    tracksIntent.putExtra(Intent.EXTRA_TEXT, spotifyId);
-                    startActivity(tracksIntent);
+                    ((Callback) getActivity()).onItemSelected(artistName, spotifyId);
                 }
+                mPosition = position;
             }
         });
 
         // hides keyboard on listview touch
-        listView.setOnTouchListener(new View.OnTouchListener() {
+        mListView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 hideKeyboard(getActivity(), v);
@@ -145,6 +148,9 @@ public class SearchFragment extends Fragment {
             }
         });
 
+        if (savedInstanceState != null && savedInstanceState.containsKey(ITEM_POSITION)) {
+            mPosition = savedInstanceState.getInt(ITEM_POSITION);
+        }
         return rootView;
     }
 
@@ -156,8 +162,19 @@ public class SearchFragment extends Fragment {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         outState.putString(SEACRH_VALUE ,mSearchString);
-
+        if (mPosition != ListView.INVALID_POSITION) {
+            outState.putInt(ITEM_POSITION, mPosition);
+        }
         super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        if (mPosition != ListView.INVALID_POSITION) {
+            mListView.smoothScrollToPosition(mPosition);
+        }
     }
 
     /**
@@ -256,4 +273,17 @@ public class SearchFragment extends Fragment {
             }
         }
     }
+
+    /**
+     * A callback interface that all activities containing this fragment must
+     * implement. This mechanism allows activities to be notified of item
+     * selections.
+     */
+    public interface Callback {
+        /**
+         * SearchFragmentCallback for when an item has been selected.
+         */
+        public void onItemSelected(String artistName, String spotifyId);
+    }
 }
+
