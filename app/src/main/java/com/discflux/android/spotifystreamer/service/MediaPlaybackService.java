@@ -20,6 +20,7 @@ import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 
 import com.discflux.android.spotifystreamer.PlayActivity;
+import com.discflux.android.spotifystreamer.PlayFragment;
 import com.discflux.android.spotifystreamer.R;
 import com.squareup.picasso.Picasso;
 
@@ -42,7 +43,7 @@ public class MediaPlaybackService extends Service implements MediaPlayer.OnPrepa
     private MediaPlayer mMediaPlayer;
     private Notification mNotification;
     private WifiManager.WifiLock mWifiLock;
-    private String songUrl, songName, albumUrl, action;
+    private String mSongUrl, mSongTitle, mAlbumUrl, mArtistName, mAlbumTitle, action;
     private int trackDuration = 0;
     private boolean initialStage = true;
     private boolean prepared = false;
@@ -60,30 +61,31 @@ public class MediaPlaybackService extends Service implements MediaPlayer.OnPrepa
     }
 
     public int onStartCommand(Intent intent, int flags, int startId) {
-        //...
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean notificationsEnabled = sharedPref.getBoolean(getString(R.string.pref_notification_key), true);
+        if (!notificationsEnabled) {
+            stopForeground(true);
+        }
         action = "";
         if (intent != null) {
             action = intent.getAction();
         }
 
         if (action.equals(ACTION_PLAY)) {
-            if (intent.hasExtra("song url") && intent.hasExtra("song name")) {
-                if (!intent.getStringExtra("song url").equals(songUrl)) {
+            if (intent.hasExtra("song url")) {
+                if (!intent.getStringExtra(PlayFragment.TRACK_URL_EXTRA).equals(mSongUrl)) {
                     initialStage = true;
                 }
-                songUrl = intent.getStringExtra("song url");
-                songName = intent.getStringExtra("song name");
-                albumUrl = intent.getStringExtra("icon url");
+                mSongUrl = intent.getStringExtra(PlayFragment.TRACK_URL_EXTRA);
             }
             if(initialStage) {
                 setupMediaPlayer();
+                saveSongState(intent);
             } else {
                 if (!mMediaPlayer.isPlaying()){
                     mMediaPlayer.start();
                 }
             }
-            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-            boolean notificationsEnabled = sharedPref.getBoolean(getString(R.string.pref_notification_key), true);
             if (notificationsEnabled) {
                 mediaNotifier();
             }
@@ -104,49 +106,23 @@ public class MediaPlaybackService extends Service implements MediaPlayer.OnPrepa
         return -1;
     }
 
+    private void saveSongState(Intent intent) {
+        mSongTitle = intent.getStringExtra(PlayFragment.TRACK_TITLE_EXTRA);
+        mArtistName = intent.getStringExtra(PlayFragment.ARTIST_NAME_EXTRA);
+        mAlbumTitle = intent.getStringExtra(PlayFragment.ALBUM_TITLE_EXTRA);
+        mAlbumUrl = intent.getStringExtra(PlayFragment.ALBUM_ART_EXTRA);
+
+    }
+
     /** Build notification */
     private void mediaNotifier() {
-
-        /*
-        // The stack builder object will contain an artificial back stack for the
-        // started Activity.
-        // This ensures that navigating backward from the Activity leads out of
-        // your application to the Home screen.
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        // Adds the back stack for the Intent (but not the Intent itself)
-        stackBuilder.addParentStack(PlayActivity.class);
-        // Adds the Intent that starts the Activity to the top of the stack
-        stackBuilder.addNextIntent(nowPlayingIntent);
-
-        PendingIntent nowPlayingPendingIntent =
-                stackBuilder.getPendingIntent(
-                        0,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                );
-
-        NotificationCompat.Builder mBuilder =
-                new NotificationCompat.Builder(this)
-                        .setSmallIcon(R.mipmap.ic_launcher)
-                        .setContentTitle(songName)
-                        .setContentText(songUrl)
-                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                        // Add media control buttons that invoke intents in your media service
-                        .addAction(17301541, "", nowPlayingPendingIntent) // #0
-                        .addAction( 17301539, "", nowPlayingPendingIntent)  // #1
-                        .addAction(17301538, "", nowPlayingPendingIntent);     // #2
-
-        mBuilder.setContentIntent(nowPlayingPendingIntent);
-        NotificationManager mNotificationManager =
-                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        // mId allows you to update the notification later on.
-        mNotificationManager.notify(NOTIFICATION_ID, mBuilder.build());*/
 
         NotificationCompat.Builder mBuilder =
                 (NotificationCompat.Builder) new NotificationCompat.Builder(this)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                     .setSmallIcon(R.mipmap.ic_launcher)
                     .setContentTitle("Spotify Streamer")
-                    .setContentText("Now Playing: \"" + songName + "\"")
+                    .setContentText("Now Playing: \"" + mSongTitle + "\"")
                     .setTicker("Can you hear the music?")
                     // Add media control buttons that invoke intents in your media service
                     .addAction(android.R.drawable.ic_media_previous, "", null) // #0
@@ -154,20 +130,36 @@ public class MediaPlaybackService extends Service implements MediaPlayer.OnPrepa
                     .addAction(android.R.drawable.ic_media_next, "", null); // #2
 
         Intent intent = new Intent(this, PlayActivity.class);
+        intent.putExtra(PlayFragment.TRACK_TITLE_EXTRA, mSongTitle);
+        intent.putExtra(PlayFragment.ARTIST_NAME_EXTRA, mArtistName);
+        intent.putExtra(PlayFragment.ALBUM_TITLE_EXTRA, mAlbumTitle);
+        intent.putExtra(PlayFragment.ALBUM_ART_EXTRA, mAlbumUrl);
+        intent.putExtra(PlayFragment.TRACK_URL_EXTRA, mSongUrl);
 
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
-                Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        /*intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                Intent.FLAG_ACTIVITY_SINGLE_TOP);*/
+
+        /*TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        // Adds the back stack for the Intent (but not the Intent itself)
+        stackBuilder.addParentStack(PlayActivity.class);
+        // Adds the Intent that starts the Activity to the top of the stack
+        stackBuilder.addNextIntent(intent);
+
+        PendingIntent pi =
+                stackBuilder.getPendingIntent(
+                        0,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );*/
 
         PendingIntent pi = PendingIntent.getActivity(
                 getApplicationContext(),
                 0,
                 intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent.FLAG_CANCEL_CURRENT);
 
         mBuilder.setContentIntent(pi);
-
-        //notification.flags |= Notification.FLAG_NO_CLEAR;
-        //notification.flags |= Notification.FLAG_ONGOING_EVENT;
+        mBuilder.setOngoing(true);
 
         /** code source for using picasso
          *  http://stackoverflow.com/questions/26888247/easiest-way-to-use-picasso-in-notification-icon
@@ -179,7 +171,7 @@ public class MediaPlaybackService extends Service implements MediaPlayer.OnPrepa
                 @Override
                 protected Bitmap doInBackground(Void... params) {
                     try {
-                        return Picasso.with(getApplicationContext()).load(albumUrl)
+                        return Picasso.with(getApplicationContext()).load(mAlbumUrl)
                                 .resize(200, 200)
                                 .placeholder(R.mipmap.ic_launcher)
                                 .error(R.mipmap.ic_launcher)
@@ -213,7 +205,7 @@ public class MediaPlaybackService extends Service implements MediaPlayer.OnPrepa
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 
         try {
-            mMediaPlayer.setDataSource(songUrl);
+            mMediaPlayer.setDataSource(mSongUrl);
 
             mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
 
@@ -240,7 +232,7 @@ public class MediaPlaybackService extends Service implements MediaPlayer.OnPrepa
 
         mMediaPlayer.setOnPreparedListener(this);
 
-        //mNotification.tickerText = "Playing: " + songName;
+        //mNotification.tickerText = "Playing: " + mSongTitle;
 
         mMediaPlayer.prepareAsync(); // prepare async to not block main thread
     }
@@ -305,7 +297,7 @@ public class MediaPlaybackService extends Service implements MediaPlayer.OnPrepa
     }
 
     public String getSongUrl() {
-        return songUrl;
+        return mSongUrl;
     }
 
     public class LocalBinder extends Binder {

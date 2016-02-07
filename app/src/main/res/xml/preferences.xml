@@ -7,4 +7,10 @@
         android:summaryOn="@string/pref_notification_summaryOn"
         android:summaryOff="@string/pref_notification_summaryOff"/>
 
+    <EditTextPreference
+        android:title="@string/pref_locality_label"
+        android:key="@string/pref_locality_key"
+        android:defaultValue="pref_locality_default"
+        android:singleLine="true" />
+
 </PreferenceScreen>

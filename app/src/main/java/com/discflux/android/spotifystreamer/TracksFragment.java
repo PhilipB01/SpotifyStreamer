@@ -1,8 +1,10 @@
 package com.discflux.android.spotifystreamer;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
@@ -126,7 +128,15 @@ public class TracksFragment extends Fragment {
     public class FetchTopTracksTask extends AsyncTask<String, Void, List<TrackInfo>> {
         @Override
         protected List<TrackInfo> doInBackground(String... params) {
-            final String countryCode = "GB";
+
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            final String countryCode = preferences.getString(
+                    getString(R.string.pref_locality_key),
+                    getString(R.string.pref_locality_default));
+            Log.d(LOG_TAG, countryCode);
+
+            //final String countryCode = "GB";
+
             SpotifyApi api = new SpotifyApi();
             SpotifyService spotify = api.getService();
 

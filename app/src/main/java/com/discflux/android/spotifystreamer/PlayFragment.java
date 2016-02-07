@@ -33,22 +33,28 @@ import java.util.ArrayList;
  */
 public class PlayFragment extends Fragment{
 
-    private TextView artistText, albumText, trackText, trackCurrentDurationText, trackTotalDurationText;
-    private ImageView imageView;
-    private ImageButton prevButton, playButton, nextButton;
-    private SeekBar seekBar;
+    private TextView mArtistTextView, mAlbumTextView, mTrackTextView, mTrackElapsedTimeTextView, mTrackTotalDurationTextView;
+    private ImageView mImageView;
+    private ImageButton mPrevButton, mPlayButton, mNextButton;
+    private SeekBar mSeekBar;
     private Handler mHandler;
     private MediaPlaybackService mService;
     private Intent mPlaybackService;
 
-    private String artistName;
-    private String albumTitle;
-    private String trackTitle;
-    private String imgUrl;
-    private String previewUrl;
+    private String mArtistName;
+    private String mAlbumTitle;
+    private String mTrackTitle;
+    private String mImgUrl;
+    private String mPreviewUrl;
 
-    private int progress = 0, trackDuration = 0;
-    private boolean play = false;
+    public static final String TRACK_TITLE_EXTRA = "song title";
+    public static final String ARTIST_NAME_EXTRA = "artist name";
+    public static final String ALBUM_TITLE_EXTRA = "album title";
+    public static final String ALBUM_ART_EXTRA = "art url";
+    public static final String TRACK_URL_EXTRA = "song url";
+
+    private int mProgress = 0, trackDuration = 0;
+    private boolean mPlay = false;
     private boolean mBound;
 
     private static final String LOG_TAG = PlayFragment.class.getSimpleName();
@@ -58,21 +64,31 @@ public class PlayFragment extends Fragment{
         Log.d(LOG_TAG, "View Created");
         View rootView = inflater.inflate(R.layout.fragment_play, container, false);
         Intent intent = getActivity().getIntent();
-        if(intent!=null) {
-            ArrayList<String> trackDetails = intent.getStringArrayListExtra(Intent.EXTRA_TEXT);
-            artistName = trackDetails.get(0);
-            trackTitle = trackDetails.get(1);
-            albumTitle = trackDetails.get(2);
-            imgUrl = trackDetails.get(3);
-            previewUrl = trackDetails.get(4);
+        if (intent != null) {
+            if (intent.hasExtra(Intent.EXTRA_TEXT)) {
+                ArrayList<String> trackDetails = intent.getStringArrayListExtra(Intent.EXTRA_TEXT);
+                mArtistName = trackDetails.get(0);
+                mTrackTitle = trackDetails.get(1);
+                mAlbumTitle = trackDetails.get(2);
+                mImgUrl = trackDetails.get(3);
+                mPreviewUrl = trackDetails.get(4);
+            } else {
+                mTrackTitle = intent.getStringExtra(PlayFragment.TRACK_TITLE_EXTRA);
+                mArtistName = intent.getStringExtra(PlayFragment.ARTIST_NAME_EXTRA);
+                mAlbumTitle = intent.getStringExtra(PlayFragment.ALBUM_TITLE_EXTRA);
+                mImgUrl = intent.getStringExtra(PlayFragment.ALBUM_ART_EXTRA);
+                mPreviewUrl = intent.getStringExtra(PlayFragment.TRACK_URL_EXTRA);
+            }
         }
         setup(rootView);
 
-        playButton.setOnClickListener(mediaListener);
+        prepareMediaIntent();
 
         mHandler = new Handler();
 
-        seekBar.setOnSeekBarChangeListener(seekBarListener);
+        mPlayButton.setOnClickListener(mediaListener);
+
+        mSeekBar.setOnSeekBarChangeListener(seekBarListener);
 
         return rootView;
     }
@@ -82,43 +98,43 @@ public class PlayFragment extends Fragment{
      **/
     private void setup(View view) {
         Log.d(LOG_TAG, "View setup");
-        artistText = (TextView) view.findViewById(R.id.artist_textview);
-        albumText = (TextView) view.findViewById(R.id.album_textview);
-        trackText = (TextView) view.findViewById(R.id.track_textview);
-        imageView = (ImageView) view.findViewById(R.id.album_art_imageview);
+        mArtistTextView = (TextView) view.findViewById(R.id.artist_textview);
+        mAlbumTextView = (TextView) view.findViewById(R.id.album_textview);
+        mTrackTextView = (TextView) view.findViewById(R.id.track_textview);
+        mImageView = (ImageView) view.findViewById(R.id.album_art_imageview);
 
-        seekBar = (SeekBar) view.findViewById(R.id.seekBar);
-        trackCurrentDurationText = (TextView) view.findViewById(R.id.media_current_time_textview);
-        trackTotalDurationText = (TextView) view.findViewById(R.id.media_end_time_textview);
+        mSeekBar = (SeekBar) view.findViewById(R.id.seekBar);
+        mTrackElapsedTimeTextView = (TextView) view.findViewById(R.id.media_current_time_textview);
+        mTrackTotalDurationTextView = (TextView) view.findViewById(R.id.media_end_time_textview);
 
-        playButton = (ImageButton) view.findViewById(R.id.button_play);
-        prevButton = (ImageButton) view.findViewById(R.id.button_previous);
-        nextButton = (ImageButton) view.findViewById(R.id.button_next);
+        mPlayButton = (ImageButton) view.findViewById(R.id.button_play);
+        mPrevButton = (ImageButton) view.findViewById(R.id.button_previous);
+        mNextButton = (ImageButton) view.findViewById(R.id.button_next);
 
-        playButton.setBackgroundResource(android.R.drawable.ic_media_play);
-        prevButton.setBackgroundResource(android.R.drawable.ic_media_previous);
-        nextButton.setBackgroundResource(android.R.drawable.ic_media_next);
+        mPlayButton.setBackgroundResource(android.R.drawable.ic_media_play);
+        mPrevButton.setBackgroundResource(android.R.drawable.ic_media_previous);
+        mNextButton.setBackgroundResource(android.R.drawable.ic_media_next);
 
-        prevButton.setScaleX(1.5f);
-        prevButton.setScaleY(1.5f);
+        mPrevButton.setScaleX(1.5f);
+        mPrevButton.setScaleY(1.5f);
 
-        playButton.setScaleX(1.5f);
-        playButton.setScaleY(1.5f);
+        mPlayButton.setScaleX(1.5f);
+        mPlayButton.setScaleY(1.5f);
 
-        nextButton.setScaleX(1.5f);
-        nextButton.setScaleY(1.5f);
+        mNextButton.setScaleX(1.5f);
+        mNextButton.setScaleY(1.5f);
 
 
-        artistText.setText(artistName);
-        albumText.setText(albumTitle);
-        trackText.setText(trackTitle);
-        if (imageView != null) {
+        mArtistTextView.setText(mArtistName);
+        mAlbumTextView.setText(mAlbumTitle);
+        mTrackTextView.setText(mTrackTitle);
+        if (mImageView != null) {
             // vertical layout album art
-            Picasso.with(getActivity()).load(imgUrl).into(imageView);
+            Picasso.with(getActivity()).load(mImgUrl).into(mImageView);
         } else {
             // horizontal layout album art
             final LinearLayout horizontalBackground = (LinearLayout) view.findViewById(R.id.linear_layout_background);
-            Picasso.with(getActivity()).load(imgUrl).into(new Target() {
+            Picasso.with(getActivity()).load(mImgUrl).into(new Target() {
                 @Override
                 public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
@@ -138,98 +154,41 @@ public class PlayFragment extends Fragment{
         }
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
-        Log.d(LOG_TAG, "Activity Paused");
-        mHandler.removeCallbacks(mUpdateTimeTask);
-        if (mBound) {
-            getActivity().unbindService(mConnection);
-            mBound = false;
-        }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        Log.d(LOG_TAG, "Activity Resumed");
-
-        Intent playbackService = new Intent(getActivity(), MediaPlaybackService.class);
-        getActivity().bindService(playbackService, mConnection, Context.BIND_AUTO_CREATE);
-    }
-
-    /**
-     * Save instance state before orientation changes
-     **/
-    @Override
-    public void onSaveInstanceState(Bundle savedInstanceState) {
-        Log.d(LOG_TAG, "onSaveInstanceStateCalled");
-        savedInstanceState.putInt("track duration", trackDuration);
-        savedInstanceState.putInt("current time", mService.getCurrentPosition());
-        savedInstanceState.putInt("current progress", progress);
-        savedInstanceState.putBoolean("isPlaying", play);
-
-        // Always call the superclass so it can save the view hierarchy state
-        super.onSaveInstanceState(savedInstanceState);
-    }
-
-    /**
-     * Restores saved instance state
-     **/
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        Log.d(LOG_TAG, "Restoring instance state");
-        Log.d(LOG_TAG, "hasInstanceState: " + savedInstanceState);
-        super.onActivityCreated(savedInstanceState);
-        if (savedInstanceState != null) {
-            // Restore value of members from saved state
-            play = savedInstanceState.getBoolean("isPlaying");
-            progress = savedInstanceState.getInt("current progress");
-            seekBar.setProgress(progress);
-            trackDuration = savedInstanceState.getInt("track duration");
-            trackTotalDurationText.setText(milliToTimer(trackDuration));
-            int currentTime = savedInstanceState.getInt("current time");
-            trackCurrentDurationText.setText(milliToTimer(currentTime));
-
-            if (play) {
-                playButton.setBackgroundResource(android.R.drawable.ic_media_pause);
-                updateProgressBar();
-            } else {
-                playButton.setBackgroundResource(android.R.drawable.ic_media_play);
-            }
-        }
-    }
-
     private View.OnClickListener mediaListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            if (!play) {
-                playButton.setBackgroundResource(android.R.drawable.ic_media_pause);
-                mPlaybackService = prepareMediaIntent(mPlaybackService, MediaPlaybackService.ACTION_PLAY);
+            if (!mPlay) {
+                mPlay = true;
+                mPlayButton.setBackgroundResource(android.R.drawable.ic_media_pause);
+                mPlaybackService.setAction(MediaPlaybackService.ACTION_PLAY);
                 //getActivity().bindService(mPlaybackService, mConnection, Context.BIND_AUTO_CREATE);
                 getActivity().startService(mPlaybackService);
                 updateProgressBar();
-                play = true;
             } else {
-                playButton.setBackgroundResource(android.R.drawable.ic_media_play);
-                mPlaybackService = prepareMediaIntent(mPlaybackService, MediaPlaybackService.ACTION_PAUSE);
-                //getActivity().bindService(mPlaybackService, mConnection, Context.BIND_AUTO_CREATE);
-                getActivity().startService(mPlaybackService);
+                mPlay = false;
+                mPlayButton.setBackgroundResource(android.R.drawable.ic_media_play);
                 mHandler.removeCallbacks(mUpdateTimeTask);
-                play = false;
+
+                if (mPlaybackService == null) {
+                    mPlaybackService = new Intent(getActivity(), MediaPlaybackService.class);
+                }
+                mPlaybackService.setAction(MediaPlaybackService.ACTION_PAUSE);
+                getActivity().startService(mPlaybackService);
             }
         }
     };
 
-    private Intent prepareMediaIntent(Intent intent, String action) {
-        if (intent == null) {
-            intent = new Intent(getActivity(), MediaPlaybackService.class);
+    private void prepareMediaIntent() {
+        if (mPlaybackService == null) {
+            mPlaybackService = new Intent(getActivity(), MediaPlaybackService.class);
         }
-        intent.setAction(action);
-        intent.putExtra("song url", previewUrl);
-        intent.putExtra("song name", trackTitle);
-        intent.putExtra("icon url", imgUrl);
-        return intent;
+        mPlaybackService.putExtra(PlayFragment.TRACK_URL_EXTRA, mPreviewUrl);
+        mPlaybackService.putExtra(PlayFragment.TRACK_TITLE_EXTRA, mTrackTitle);
+        mPlaybackService.putExtra(PlayFragment.ARTIST_NAME_EXTRA, mArtistName);
+        mPlaybackService.putExtra(PlayFragment.ALBUM_TITLE_EXTRA, mAlbumTitle);
+        mPlaybackService.putExtra(PlayFragment.ALBUM_ART_EXTRA, mImgUrl);
+        /*mPlaybackService.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                Intent.FLAG_ACTIVITY_SINGLE_TOP);*/
     }
 
     /** Update scrub bar every 100 mSec */
@@ -245,21 +204,21 @@ public class PlayFragment extends Fragment{
             int currentDuration = mService.getCurrentPosition();
 
             // Displaying time completed playing
-            trackCurrentDurationText.setText(milliToTimer(currentDuration));
+            mTrackElapsedTimeTextView.setText(milliToTimer(currentDuration));
 
             trackDuration =  mService.getTrackDuration();
-            String durationText = trackTotalDurationText.getText().toString();
+            String durationText = mTrackTotalDurationTextView.getText().toString();
             if (durationText.equals("-") || durationText.contains("0:00")) {
-                trackTotalDurationText.setText(milliToTimer(trackDuration));
+                mTrackTotalDurationTextView.setText(milliToTimer(trackDuration));
             }
 
-            // Updating progress bar
+            // Updating mProgress bar
             if (trackDuration != 0) {
-                progress = (int) (((currentDuration / (double) trackDuration) + 0.005) * 100);
-                //Log.i("Progress", "" + progress);
-                seekBar.setProgress(progress);
+                mProgress = (int) (((currentDuration / (double) trackDuration) + 0.005) * 100);
+                //Log.i("Progress", "" + mProgress);
+                mSeekBar.setProgress(mProgress);
             }
-            if (progress < 100) {
+            if (mProgress < 100) {
                 // Running this thread after 100 milliseconds
                 updateProgressBar();
             } else {
@@ -274,10 +233,10 @@ public class PlayFragment extends Fragment{
     private void resetScrubBar() {
         Log.d(LOG_TAG, "Track playback complete");
         mHandler.removeCallbacks(mUpdateTimeTask);
-        playButton.setBackgroundResource(android.R.drawable.ic_media_play);
-        trackCurrentDurationText.setText(milliToTimer(0));
-        seekBar.setProgress(0);
-        play = false;
+        mPlayButton.setBackgroundResource(android.R.drawable.ic_media_play);
+        mTrackElapsedTimeTextView.setText(milliToTimer(0));
+        mSeekBar.setProgress(0);
+        mPlay = false;
     }
 
     private SeekBar.OnSeekBarChangeListener seekBarListener = new SeekBar.OnSeekBarChangeListener() {
@@ -290,7 +249,7 @@ public class PlayFragment extends Fragment{
         }
         @Override
         public void onStartTrackingTouch(SeekBar seekBar) {
-            // remove message Handler from updating progress bar
+            // remove message Handler from updating mProgress bar
             mHandler.removeCallbacks(mUpdateTimeTask);
         }
         @Override
@@ -307,6 +266,68 @@ public class PlayFragment extends Fragment{
         return String.format("%2d:%02d", minutes, seconds);
     }
 
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Log.d(LOG_TAG, "Activity Paused");
+        mHandler.removeCallbacks(mUpdateTimeTask);
+        if (mBound) {
+            getActivity().unbindService(mConnection);
+            mBound = false;
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.d(LOG_TAG, "Activity Resumed");
+
+        getActivity().bindService(mPlaybackService, mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    /**
+     * Save instance state before orientation changes
+     **/
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "onSaveInstanceStateCalled");
+        savedInstanceState.putInt("track duration", trackDuration);
+        savedInstanceState.putInt("current time", mService.getCurrentPosition());
+        savedInstanceState.putInt("current progress", mProgress);
+        savedInstanceState.putBoolean("isPlaying", mPlay);
+
+        // Always call the superclass so it can save the view hierarchy state
+        super.onSaveInstanceState(savedInstanceState);
+    }
+
+    /**
+     * Restores saved instance state
+     **/
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        Log.d(LOG_TAG, "Restoring instance state");
+        Log.d(LOG_TAG, "hasInstanceState: " + savedInstanceState);
+        super.onActivityCreated(savedInstanceState);
+        if (savedInstanceState != null) {
+            // Restore value of members from saved state
+            mPlay = savedInstanceState.getBoolean("isPlaying");
+            mProgress = savedInstanceState.getInt("current progress");
+            mSeekBar.setProgress(mProgress);
+            trackDuration = savedInstanceState.getInt("track duration");
+            mTrackTotalDurationTextView.setText(milliToTimer(trackDuration));
+            int currentTime = savedInstanceState.getInt("current time");
+            mTrackElapsedTimeTextView.setText(milliToTimer(currentTime));
+
+            if (mPlay) {
+                mPlayButton.setBackgroundResource(android.R.drawable.ic_media_pause);
+                updateProgressBar();
+            } else {
+                mPlayButton.setBackgroundResource(android.R.drawable.ic_media_play);
+            }
+        }
+    }
+
     /**
      *  Defines callbacks for service binding, passed to bindService()
      **/
@@ -321,13 +342,13 @@ public class PlayFragment extends Fragment{
             mBound = true;
             Log.d(LOG_TAG, "Service connected");
             Log.d(LOG_TAG, "player ready: " + mService.playerReady());
-            Log.d(LOG_TAG, "playing: " + play);
+            Log.d(LOG_TAG, "playing: " + mPlay);
 
-            if (mService.playerReady() && mService.getSongUrl().equals(previewUrl)) {
-                Log.d(LOG_TAG, "Want to update progress bar: " + progress);
+            if (mService.playerReady() && mService.getSongUrl().equals(mPreviewUrl)) {
+                Log.d(LOG_TAG, "Want to update progress bar: " + mProgress);
                 updateProgressBar();
                 if (mService.isPlaying()) {
-                    playButton.setBackgroundResource(android.R.drawable.ic_media_pause);
+                    mPlayButton.setBackgroundResource(android.R.drawable.ic_media_pause);
                 }
             }
         }

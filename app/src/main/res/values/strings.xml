@@ -25,4 +25,13 @@
     <!-- Default value for notification checkbox in SharedPreferences [Bool] -->
     <string name="pref_notification_default" translateable="false">true</string>
 
+
+    <string name="pref_locality_label">Locality</string>
+
+    <!-- Key name for storing notification in SharedPreferences [CHAR LIMIT=20] -->
+    <string name="pref_locality_key" translatable="false">locality</string>
+
+    <!-- Default value for notification checkbox in SharedPreferences [Bool] -->
+    <string name="pref_locality_default" translateable="false">GB</string>
+
 </resources>
