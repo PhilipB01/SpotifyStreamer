@@ -37,6 +37,7 @@ public class TracksFragment extends Fragment {
     public static final String SPOTIFY_ID = "SPOTIFY_ID_DATA";
     TrackAdapter mTracksAdapter;
     String mArtistName;
+    private ArrayList<TrackInfo> mTracksList;
 
     public TracksFragment() {
     }
@@ -107,9 +108,12 @@ public class TracksFragment extends Fragment {
                 trackDetails.add(track.getAlbumName());
                 trackDetails.add(track.getImageUrl());
                 trackDetails.add(track.getPreviewUrl());
-                Intent playTrack = new Intent(getActivity(), PlayActivity.class);
-                playTrack.putStringArrayListExtra(Intent.EXTRA_TEXT, trackDetails);
-                startActivity(playTrack);
+                Intent playTrackIntent = new Intent(getActivity(), PlayActivity.class);
+                playTrackIntent.putExtra(PlayFragment.ARTIST_NAME_EXTRA, mArtistName);
+                playTrackIntent.putParcelableArrayListExtra(PlayFragment.TRACK_INFO_EXTRA, mTracksList);
+                playTrackIntent.putExtra(PlayFragment.TRACK_POSITION, position);
+                //playTrackIntent.putStringArrayListExtra(Intent.EXTRA_TEXT, trackDetails);
+                startActivity(playTrackIntent);
             }
         });
 
@@ -182,6 +186,7 @@ public class TracksFragment extends Fragment {
         protected void onPostExecute(List<TrackInfo> tracks) {
             // update tracks
             if (tracks!= null) {
+                mTracksList = new ArrayList<>(tracks);
                 mTracksAdapter.clear();
                 mTracksAdapter.addAll(tracks);
             }
