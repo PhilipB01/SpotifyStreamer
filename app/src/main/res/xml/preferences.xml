@@ -10,7 +10,7 @@
     <EditTextPreference
         android:title="@string/pref_locality_label"
         android:key="@string/pref_locality_key"
-        android:defaultValue="pref_locality_default"
+        android:defaultValue="@string/pref_locality_default"
         android:singleLine="true" />
 
 </PreferenceScreen>

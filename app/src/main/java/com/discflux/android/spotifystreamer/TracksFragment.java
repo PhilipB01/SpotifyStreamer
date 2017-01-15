@@ -17,14 +17,14 @@ import android.widget.ListView;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 import kaaes.spotify.webapi.android.SpotifyApi;
+import kaaes.spotify.webapi.android.SpotifyError;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 import kaaes.spotify.webapi.android.models.Tracks;
+import retrofit.RetrofitError;
 
 
 /**
@@ -144,9 +144,18 @@ public class TracksFragment extends Fragment {
             SpotifyApi api = new SpotifyApi();
             SpotifyService spotify = api.getService();
 
-            Map map = new TreeMap();
-            map.put("country", countryCode);
-            Tracks data = spotify.getArtistTopTrack(params[0], map);
+            /*Map map = new TreeMap();
+            map.put("country", countryCode);*/
+
+            Tracks data = null;
+            try {
+                Log.d(LOG_TAG, params[0] + ", " + countryCode);
+                data = spotify.getArtistTopTrack(params[0], countryCode);
+            } catch (RetrofitError error) {
+                SpotifyError spotifyError = SpotifyError.fromRetrofitError(error);
+                // handle error
+            }
+
             List<Track> tracks = data.tracks;
             List<TrackInfo> trackInfoList = new ArrayList<>(tracks.size());
             for(Track track:tracks) {

@@ -51,7 +51,7 @@ public class ArtistAdapter extends ArrayAdapter<ArtistInfo> {
         holder.textView.setText(artist.getArtistName());
         if (!artist.getThumbnailUrl().equals("")) {
             // debug picasso loading
-            Picasso.with(context).setIndicatorsEnabled(true);
+            Picasso.with(context).setIndicatorsEnabled(false);
             Picasso.with(context)
                     .load(artist.getThumbnailUrl())
                     .into(holder.imageView);

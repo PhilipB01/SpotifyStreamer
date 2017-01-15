@@ -24,16 +24,16 @@
                 android:layout_height="wrap_content"
                 android:maxHeight="?android:listPreferredItemHeight"
                 android:layout_marginLeft="16dp"
-                android:text="Album title"
-                android:id="@+id/list_item_track_album" />
+                android:text="Track title"
+                android:id="@+id/list_item_track_title" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:maxHeight="?android:listPreferredItemHeight"
                 android:layout_marginLeft="16dp"
-                android:text="Track title"
-                android:id="@+id/list_item_track_title" />
+                android:text="Album title"
+                android:id="@+id/list_item_track_album" />
 
         </LinearLayout>
 

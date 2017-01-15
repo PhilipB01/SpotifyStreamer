@@ -53,6 +53,7 @@ public class TrackAdapter extends ArrayAdapter<TrackInfo> {
         holder.albumTextView.setText(track.getAlbumName());
         holder.trackTextView.setText(track.getTrackName());
         if (track.getThumbnailUrl()!="") {
+            Picasso.with(context).setIndicatorsEnabled(false);
             Picasso.with(context)
                     .load(track.getThumbnailUrl())
                     .into(holder.imageView);

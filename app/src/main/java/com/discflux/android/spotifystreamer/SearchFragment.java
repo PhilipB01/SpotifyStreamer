@@ -283,7 +283,7 @@ public class SearchFragment extends Fragment {
         /**
          * SearchFragmentCallback for when an item has been selected.
          */
-        public void onItemSelected(String artistName, String spotifyId);
+        void onItemSelected(String artistName, String spotifyId);
     }
 }
 
